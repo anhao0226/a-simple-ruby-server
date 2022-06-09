@@ -1,4 +1,5 @@
 require 'socket'
+require './http_method.rb'
 
 def say_hello(context)
     name = context.values("name")
@@ -12,16 +13,35 @@ def not_found(client)
     client.close;
 end
 
+
+
+
 # 上下文
 class Context
-    def initialize(client, params)
+
+    def initialize(client, params, method = "GET")
         @client = client
         @params = params
+        @method = method
     end
 
+    # GET
     def values(key)
         val = @params[key]
         val
+    end
+
+    # POST
+    def post_form(key)
+
+    end
+
+    def json(data)
+        
+    end
+
+    def method
+        @method    
     end
 
     def write(str)
@@ -32,27 +52,81 @@ class Context
     def close
         @client.close
     end
+end
+
+
+class Router
+
+    def initialize(baseUrl = "")
+        @base_url = "";
+        @routes = {}
+    end
+
+     # GET
+     def _get(path, handle)
+        @routes[path] = handle
+    end
+
+    # POST
+    def _post(path, handle)
+    
+    end
+
+    # DELETE
+    def _delete(path, handle)
+        
+    end
+
+    #
     
 end
 
+
+class Response
+    def initialize()
+
+    end
+end
+
+
+class Request
+    def initialize
+        
+    end
+end
+
 class SocketServer
+
+    
     def initialize(port = "3000", host = "localhost")
         @port = port
         @host = host
         @routes = {}
-        # @queue = queue;
     end
 
 
+    # GET
     def _get(path, handle)
         @routes[path] = handle
     end
 
-    # 处理响应
-    def handle_response
+    # POST
+    def _post(path, handle)
+    
+    end
+
+    # DELETE
+    def _delete(path, handle)
+        
+    end
+
+    
+    # handle_func(Context context)
+    def _use(handle_func)
 
     end
 
+    # 
     def extract_data(str)
         data = {}
         str.split("&").each do |value|
@@ -75,8 +149,9 @@ class SocketServer
 
         data = {}
         base_url = ""
+        method = HttpMethod::GET
         # example http://localhost:3000?name=zhang&age=10
-        if _method.upcase == "GET"
+        if _method.upcase == HttpMethod::GET
             #  ?name=zhang&age=10 提取url参数
             if _path.include?('?')
                 _split_index =  _path.index('?');
@@ -85,14 +160,18 @@ class SocketServer
             elsif
                 base_url = _path
             end
-        elsif _method.upcase == "POST"
-            # 
+        elsif _method.upcase == HttpMethod::POST
+            method = HttpMethod::POST
+        elsif _method.upcase == HttpMethod::DELETE
+            method = HttpMethod::DELETE
+        elsif _method.upcase == HttpMethod::PUT
+            method = HttpMethod::PUT
         end
 
 
         if @routes.has_key?(base_url)
             fn = @routes[base_url]
-            context = Context.new(client,data)
+            context = Context.new(client, data, method)
             fn.call(context)
         elsif
             not_found(client)
@@ -102,11 +181,12 @@ class SocketServer
     def start_server
         begin
             @server = TCPServer.new(@host, @port) #Server bound to port 3000
-            puts "TCP on 127.0.0.1:#{@port}"
+            puts "TCP on #{@host}:#{@port}"
             loop do
-               Thread.start(@server.accept) do |client|
-                handle_request(client)
-               end
+                # Thread
+                Thread.start(@server.accept) do |client|
+                   handle_request(client)
+                end
 
             end 
         rescue => exception
